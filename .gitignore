@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+.env
+.DS_Store
+
+# Training artifacts
+outputs/
+checkpoints/
+runs/
+logs/
+
+# Model assets
+models/lora_checkpoint/
+models/merged/
+
+# Benchmarks and reports
+report/generated/
+
+/.cursor/
+/data/
+/training/
+

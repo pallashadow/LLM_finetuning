@@ -1,0 +1,57 @@
+project_name: opensupport-llm
+base_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+output_dir: outputs/qwen3_8b_sft
+
+dataset:
+  train_file: data/synthetic_rag_train.jsonl
+  eval_file: data/synthetic_rag_eval.jsonl
+  max_seq_length: 16384
+  # Deterministic split and generation
+  seed: 42
+  eval_ratio: 0.1
+  # Controllable topic mix (optional). If omitted, uses default per-topic counts.
+  # topic_weights: { billing: 0.25, security: 0.25, logistics: 0.25, account_issues: 0.25 }
+  # When using topic_weights, total non-sensitive samples = total_samples_when_weights (default 64).
+  # total_samples_when_weights: 64
+  # Or exact counts per topic:
+  num_sensitive: 5
+  # num_samples_per_topic: { billing: 6, security: 6, logistics: 6, account_issues: 6 }
+
+training:
+  num_train_epochs: 1
+  max_steps: -1
+  learning_rate: 2.0e-4
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 8
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  logging_strategy: steps
+  logging_steps: 10
+  save_steps: 200
+  eval_steps: 200
+  evaluation_strategy: steps
+  save_strategy: steps
+  save_total_limit: 2
+  resume_from_checkpoint: false  # false | true | latest | /path/to/checkpoint
+  report_to: []
+  deepspeed_config: configs/deepspeed_zero2.json
+  gradient_checkpointing: true
+
+export:
+  adapter_dir: adapter
+  merge_adapter: false
+  merged_model_dir: merged_model
+  safe_serialization: true
+
+lora:
+  r: 32
+  alpha: 64
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - k_proj
+    - v_proj
+    - o_proj
+
+
