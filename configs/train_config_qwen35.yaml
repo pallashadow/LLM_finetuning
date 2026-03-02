@@ -1,10 +1,25 @@
 project_name: opensupport-llm
-base_model: Qwen/Qwen3-30B-A3B-Instruct-2507
+base_model: Qwen/Qwen3-4B-Instruct-2507
 output_dir: outputs/qwen3_8b_sft
 
 dataset:
   train_file: data/synthetic_rag_train.jsonl
   eval_file: data/synthetic_rag_eval.jsonl
+  # Alternative source abstraction (instead of train_file/eval_file):
+  # train_source:
+  #   type: jsonl_file
+  #   config:
+  #     path: data/synthetic_rag_train.jsonl
+  # eval_source:
+  #   type: jsonl_file
+  #   config:
+  #     path: data/synthetic_rag_eval.jsonl
+  # Optional pipeline steps:
+  # pipeline:
+  #   - name: strip_fields
+  #     config:
+  #       fields: [question, answer]
+  #   - name: drop_empty_answer
   max_seq_length: 16384
   # Deterministic split and generation
   seed: 42

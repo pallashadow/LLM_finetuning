@@ -45,12 +45,7 @@ def run_latency_test(
     run_id = uuid4().hex
     started_at = datetime.now(timezone.utc).isoformat()
     payload = {
-        "question": "I was charged twice this month. How can I get a refund?",
-        "refs": [
-            "[1] Duplicate charges can be refunded within 14 days.",
-            "[2] Submit refund requests through billing@example.com.",
-        ],
-        "query_context_txt": "",
+        "input": "I was charged twice this month. How can I get a refund?",
         "max_tokens": 128,
     }
 

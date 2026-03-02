@@ -40,10 +40,10 @@ report/
    pip install -r requirements.txt
    ```
 
-2. Build synthetic dataset (if using pipeline dataset builder):
+2. Prepare dataset files (or configure a data source):
 
    ```bash
-   python training/sft_pipeline.py --mode build_dataset --config configs/train_config.yaml
+   python training/sft_pipeline.py --mode check_quality --config configs/train_config.yaml
    ```
 
 3. Run SFT pipeline:
@@ -55,7 +55,7 @@ report/
 4. Start local inference service (auto-select `vLLM`, fallback to `Transformers`):
 
    ```bash
-   python serving/vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen2.5-7B-Instruct
+   python serving/vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen3-4B-Instruct-2507
    ```
 
 5. Run latency benchmark:
@@ -70,6 +70,58 @@ report/
 - Training: LoRA/PEFT SFT, adapter export, metadata output. Prompt rendering can be wired to `prompt_template.yaml` (RAG: question, history, refs).
 - Inference and benchmark scripts are runnable; production hardening and deployment workflows are pending.
 - SageMaker deployment, full evaluation framework, and CI/test coverage are not complete yet.
+
+## Dataset Loader Abstraction
+
+`training/sft_pipeline.py` supports source abstraction via `data/loaders.py`.
+
+- Backward-compatible file config:
+  - `dataset.train_file`
+  - `dataset.eval_file`
+- Source-based config:
+  - `dataset.train_source`
+  - `dataset.eval_source`
+- Optional transform pipeline:
+  - `dataset.pipeline`
+  - `dataset.train_pipeline`
+  - `dataset.eval_pipeline`
+
+Example (single JSONL file source):
+
+```yaml
+dataset:
+  train_source:
+    type: jsonl_file
+    config:
+      path: data/synthetic_rag_train.jsonl
+  eval_source:
+    type: jsonl_file
+    config:
+      path: data/synthetic_rag_eval.jsonl
+  pipeline:
+    - name: strip_fields
+      config:
+        fields: [question, answer]
+    - name: drop_empty_answer
+```
+
+Example (Kafka source):
+
+```yaml
+dataset:
+  train_source:
+    type: kafka
+    config:
+      topic: rag-train
+      bootstrap_servers: 127.0.0.1:9092
+      group_id: opensupport-train
+      auto_offset_reset: earliest
+      max_messages: 10000
+  eval_source:
+    type: jsonl_file
+    config:
+      path: data/synthetic_rag_eval.jsonl
+```
 
 ## Detailed TODO List
 

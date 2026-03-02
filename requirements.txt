@@ -1,0 +1,11 @@
+pyyaml
+requests
+fastapi
+uvicorn
+pydantic
+torch
+transformers
+datasets
+peft
+bitsandbytes
+vllm

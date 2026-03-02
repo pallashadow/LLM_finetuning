@@ -1,10 +1,21 @@
 project_name: opensupport-llm-smoke
-base_model: Qwen/Qwen3-8B-Instruct
+base_model: Qwen/Qwen3-4B-Instruct-2507
 output_dir: outputs/smoke_qwen3_8b_sft
 
 dataset:
   train_file: data/synthetic_rag_train.jsonl
   eval_file: data/synthetic_rag_eval.jsonl
+  # You can also switch to source-based config:
+  # train_source:
+  #   type: kafka
+  #   config:
+  #     topic: rag-train
+  #     bootstrap_servers: 127.0.0.1:9092
+  #     max_messages: 200
+  # eval_source:
+  #   type: jsonl_file
+  #   config:
+  #     path: data/synthetic_rag_eval.jsonl
   max_seq_length: 512
   seed: 42
   eval_ratio: 0.1
