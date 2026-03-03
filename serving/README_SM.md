@@ -2,6 +2,12 @@
 
 This project now uses a single unified server: `serving/vllm_server.py`.
 
+Run commands in WSL (bash). Example entry command from Windows host:
+
+```bash
+wsl -u pallas -- bash -lc "cd /mnt/d/PROJECT/LLM_finetuning && lic python serving/vllm_server.py --port 8080 --route_sets local,openai,sagemaker"
+```
+
 ## 1. Start Command (local and container)
 
 For SageMaker-compatible startup, run:

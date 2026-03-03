@@ -1,0 +1,55 @@
+project_name: opensupport-llm-3070
+base_model: Qwen/Qwen3-4B-Instruct-2507
+output_dir: outputs/qwen3_4b_qlora_3070
+
+dataset:
+  train_file: data/synthetic_rag_train.jsonl
+  eval_file: data/synthetic_rag_eval.jsonl
+  # RTX 3070 (8GB) friendly context length.
+  max_seq_length: 1024
+  seed: 42
+  eval_ratio: 0.1
+  num_sensitive: 5
+
+training:
+  num_train_epochs: 1
+  max_steps: -1
+  learning_rate: 2.0e-4
+  per_device_train_batch_size: 1
+  per_device_eval_batch_size: 1
+  gradient_accumulation_steps: 16
+  warmup_ratio: 0.03
+  lr_scheduler_type: cosine
+  logging_strategy: steps
+  logging_steps: 10
+  save_steps: 200
+  eval_steps: 200
+  evaluation_strategy: steps
+  save_strategy: steps
+  save_total_limit: 2
+  resume_from_checkpoint: false
+  report_to: []
+  # Keep empty to avoid extra memory overhead on single 8GB GPU.
+  deepspeed_config:
+  gradient_checkpointing: true
+  # Enable QLoRA through bitsandbytes 4-bit.
+  load_in_4bit: true
+  bnb_4bit_quant_type: nf4
+  bnb_4bit_use_double_quant: true
+  bf16: false
+  fp16: true
+  load_best_model_at_end: false
+
+export:
+  adapter_dir: adapter
+  merge_adapter: false
+  merged_model_dir: merged_model
+  safe_serialization: true
+
+lora:
+  r: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - q_proj
+    - v_proj

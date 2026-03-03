@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import asyncio
 import os
 import logging
+from pathlib import Path
 from litellm import Router
 import json
 import time
@@ -18,13 +19,60 @@ litellm.set_verbose = False
 
 # Create a single shared router instance to avoid callback limit issues
 _router = None
+_env_loaded = False
+
+
+def _load_dotenv_once() -> None:
+    """Load .env from project root into os.environ (without overrides)."""
+    global _env_loaded
+    if _env_loaded:
+        return
+
+    env_path = Path(__file__).resolve().parents[2] / ".env"
+    if not env_path.exists():
+        _env_loaded = True
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :].strip()
+        if "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+    _env_loaded = True
+
+
+def _build_vllm_model_entry():
+    """Build a LiteLLM router entry for local OpenAI-compatible vLLM server."""
+    _load_dotenv_once()
+    api_base = os.getenv("VLLM_API_BASE", "http://127.0.0.1:8000/v1")
+    vllm_model = os.getenv("VLLM_MODEL", "Qwen/Qwen3-4B-Instruct-2507")
+    api_key = os.getenv("VLLM_API_KEY", "EMPTY")
+    return {
+        "model_name": "vllm",
+        "litellm_params": {
+            "model": f"openai/{vllm_model}",
+            "api_base": api_base,
+            "api_key": api_key,
+        },
+    }
+
 
 def get_litellm_fallback_router():
     """Get or create a shared router instance"""
     global _router
     if _router is None:
+        local_entry = _build_vllm_model_entry()
         _router = Router(
             model_list=[
+                local_entry,
                 #{
                 #    "model_name": "claude", 
                 #    "litellm_params": {
@@ -43,14 +91,18 @@ def get_litellm_fallback_router():
                     }
                 }
             ],
-            fallbacks=[{"gpt": ["gemini"]}, {"gemini":["gpt"]}],
+            fallbacks=[
+                {"vllm": ["gpt", "gemini"]},
+                {"gpt": ["gemini"]},
+                {"gemini": ["gpt"]},
+            ],
             num_retries=1,
             max_fallbacks=1, 
         )
     return _router
 
 async def call_llm_with_fallback(str1, 
-                                 model_name = "gemini", 
+                                 model_name = "vllm", 
                                  response_format=None
                                  ):
     router = get_litellm_fallback_router()
@@ -175,6 +227,7 @@ async def call_llm_with_tools(
     router = get_litellm_fallback_router()
     
     messages = [{"role": "user", "content": prompt}]
+    start_time = time.time()
     
     # LiteLLM automatically handles tools parameter
     response = await router.acompletion(

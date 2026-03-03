@@ -5,6 +5,7 @@ requests
 fastapi
 uvicorn
 pydantic
+litellm==1.65.1
 torch==2.9.1
 transformers==4.57.6
 datasets==4.6.1

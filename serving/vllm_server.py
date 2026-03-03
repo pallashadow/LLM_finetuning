@@ -10,11 +10,8 @@ from serving.utils import (
     AnswerResponse,
     BackendRegistry,
     RouteRegistry,
-    TransformersBackend,
-    VLLMBackend,
-    register_local_routes,
-    register_openai_routes,
-    register_sagemaker_routes,
+    build_default_backend_registry,
+    build_default_route_registry,
 )
 
 
@@ -32,26 +29,11 @@ def _parse_route_sets(raw_route_sets: str) -> list[str]:
     return [item for item in items if item]
 
 
-def _build_backend_registry() -> BackendRegistry:
-    registry = BackendRegistry()
-    registry.register("vllm", VLLMBackend)
-    registry.register("transformers", TransformersBackend)
-    return registry
-
-
-def _build_route_registry() -> RouteRegistry:
-    registry = RouteRegistry()
-    registry.register("local", register_local_routes)
-    registry.register("openai", register_openai_routes)
-    registry.register("sagemaker", register_sagemaker_routes)
-    return registry
-
-
 def create_app(config: dict[str, Any]) -> FastAPI:
     app = FastAPI(title="OpenSupport-LLM Inference API", version="0.2.0")
     app.state.app_config = dict(config)
-    app.state.backend_registry = _build_backend_registry()
-    app.state.route_registry = _build_route_registry()
+    app.state.backend_registry = build_default_backend_registry()
+    app.state.route_registry = build_default_route_registry()
     app.state.backend = None
 
     def get_backend():

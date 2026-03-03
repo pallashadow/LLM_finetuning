@@ -76,7 +76,7 @@ Optional: LLM-as-a-judge, GPT-4 evaluator.
 ### C. Serving and Deployment
 
 - [x] Replace stub in `serving/vllm_server.py` with real model inference.
-- [ ] Build inference prompt from `prompt_template.yaml` (question, history, refs).
+- [x] Build inference prompt from `prompts/prompt_rag.yaml` (question, query_context_txt, search_results_txt).
 - [x] Request validation (max length, payload size).
 - [ ] SageMaker deployment artifacts.
 - [ ] Endpoint metrics (latency, error rate, throughput).

@@ -2,6 +2,12 @@
 
 This document explains how to run and test `serving/vllm_server.py` after refactoring to a registry-based architecture.
 
+Run commands in WSL (bash). Example entry command from Windows host:
+
+```bash
+wsl -u pallas -- bash -lc "cd /mnt/d/PROJECT/LLM_finetuning && lic python -m serving.vllm_server"
+```
+
 ## 1. Architecture
 
 The server now uses registry classes to compose backends and API protocols.
@@ -81,6 +87,23 @@ curl -s http://127.0.0.1:8000/answer \
     "max_tokens": 128
   }'
 ```
+
+Local inference (RAG prompt builder client):
+
+```bash
+python -m serving.client.client \
+  --question "Who is Satya Nadella?" \
+  --query-context-txt "User previously asked about Microsoft leadership." \
+  --search-results-txt "[1] Satya Nadella is the CEO of Microsoft." \
+  --model-name vllm
+```
+
+This client builds the inference prompt from `prompts/prompt_rag.yaml` using
+`question`, `query_context_txt`, and `search_results_txt`, then calls LiteLLM
+via `serving/client/litellm_api.py`.
+
+Set local vLLM endpoint/model with `VLLM_API_BASE`, `VLLM_MODEL`, `VLLM_API_KEY`.
+The client auto-loads these values from project-root `.env` (existing process env still has higher priority).
 
 SageMaker-style inference:
 

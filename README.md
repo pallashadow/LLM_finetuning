@@ -32,37 +32,37 @@ report/
 
 ## Quick Start
 
-1. Create environment and install dependencies (Windows / PowerShell, from project root):
+1. Create environment and install dependencies (WSL / bash, from project root):
 
-   ```powershell
-   python -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+   ```bash
+   python3 -m venv .venv
+   .venv/bin/python -m pip install -r requirements.txt
    ```
 
 2. Prepare dataset files (or configure a data source):
 
-   ```powershell
-   .\.venv\Scripts\python.exe training\sft_pipeline.py --mode check_quality --config configs\train_config.yaml
+   ```bash
+   .venv/bin/python training/sft_pipeline.py --mode check_quality --config configs/train_config.yaml
    ```
 
 3. Run SFT pipeline:
 
-   ```powershell
-   .\.venv\Scripts\python.exe training\sft_pipeline.py --mode train --config configs\train_config.yaml
+   ```bash
+   .venv/bin/python training/sft_pipeline.py --mode train --config configs/train_config.yaml
    ```
 
 4. Start local inference service (auto-select `vLLM`, fallback to `Transformers`):
 
-   ```powershell
-   .\.venv\Scripts\python.exe serving\vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen3-4B-Instruct-2507
+   ```bash
+   .venv/bin/python serving/vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen3-4B-Instruct-2507
    ```
 
    For more serving options and OpenAI/SageMaker-compatible routes, see `serving/README_VLLM.md`.
 
 5. Run latency benchmark:
 
-   ```powershell
-   .\.venv\Scripts\python.exe evaluation\latency_test.py --endpoint http://127.0.0.1:8000/answer --rounds 20 --warmup_rounds 3 --concurrency 1 --output_json report\generated\latest_latency.json --benchmark_csv report\generated\benchmark_results.csv --model local-open-model --cost_per_1k_queries_usd 0.02
+   ```bash
+   .venv/bin/python evaluation/latency_test.py --endpoint http://127.0.0.1:8000/answer --rounds 20 --warmup_rounds 3 --concurrency 1 --output_json report/generated/latest_latency.json --benchmark_csv report/generated/benchmark_results.csv --model local-open-model --cost_per_1k_queries_usd 0.02
    ```
 
 ## Current Status
