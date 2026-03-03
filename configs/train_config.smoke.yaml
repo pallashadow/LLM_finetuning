@@ -35,7 +35,7 @@ training:
   logging_steps: 1
   save_steps: 4
   eval_steps: 4
-  evaluation_strategy: steps
+  eval_strategy: steps
   save_strategy: steps
   save_total_limit: 2
   resume_from_checkpoint: false

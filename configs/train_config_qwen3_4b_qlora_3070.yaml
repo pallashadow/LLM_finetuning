@@ -13,7 +13,7 @@ dataset:
 
 training:
   num_train_epochs: 1
-  max_steps: -1
+  max_steps: 3
   learning_rate: 2.0e-4
   per_device_train_batch_size: 1
   per_device_eval_batch_size: 1
@@ -24,13 +24,13 @@ training:
   logging_steps: 10
   save_steps: 200
   eval_steps: 200
-  evaluation_strategy: steps
+  eval_strategy: steps
   save_strategy: steps
   save_total_limit: 2
   resume_from_checkpoint: false
   report_to: []
-  # Keep empty to avoid extra memory overhead on single 8GB GPU.
-  deepspeed_config:
+  # Enable DeepSpeed ZeRO-2 profile tuned for QLoRA 4-bit on single GPU.
+  deepspeed_config: configs/deepspeed_zero2.json
   gradient_checkpointing: true
   # Enable QLoRA through bitsandbytes 4-bit.
   load_in_4bit: true

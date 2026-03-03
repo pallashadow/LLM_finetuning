@@ -1,24 +1,24 @@
 {
-    "zero_optimization": {
-      "stage": 2,
-      "offload_optimizer": {
-        "device": "none"
-      },
-      "offload_param": {
-        "device": "none"
-      },
-      "contiguous_gradients": true,
-      "overlap_comm": true
+  "zero_optimization": {
+    "stage": 2,
+    "offload_optimizer": {
+      "device": "none"
     },
-    "gradient_clipping": 1.0,
-    "train_micro_batch_size_per_gpu": "auto",
-    "gradient_accumulation_steps": "auto",
-    "steps_per_print": 100,
-    "bf16": {
-      "enabled": "auto"
+    "offload_param": {
+      "device": "none"
     },
-    "fp16": {
-      "enabled": false
-    }
+    "contiguous_gradients": true,
+    "overlap_comm": false
+  },
+  "gradient_clipping": 1.0,
+  "train_micro_batch_size_per_gpu": "auto",
+  "gradient_accumulation_steps": "auto",
+  "steps_per_print": 100,
+  "bf16": {
+    "enabled": false
+  },
+  "fp16": {
+    "enabled": true,
+    "loss_scale": 0
   }
-  
+}
