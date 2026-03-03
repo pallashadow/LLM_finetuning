@@ -1,46 +1,208 @@
-from __future__ import annotations
-
-import argparse
-import json
+import litellm
+from litellm import acompletion
+from pydantic import BaseModel
+import asyncio
 import os
+import logging
+from litellm import Router
+import json
+import time
+import tempfile
+litellm.enable_json_schema_validation=True
 
-from litellm import completion
+# Suppress LiteLLM INFO logs
+logging.getLogger("LiteLLM").setLevel(logging.WARNING)
+logging.getLogger("LiteLLM Router").setLevel(logging.WARNING)
+# Also disable LiteLLM's verbose logging
+litellm.set_verbose = False
 
+# Create a single shared router instance to avoid callback limit issues
+_router = None
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Call local vllm_server.py through LiteLLM (OpenAI-compatible API)."
+def get_litellm_fallback_router():
+    """Get or create a shared router instance"""
+    global _router
+    if _router is None:
+        _router = Router(
+            model_list=[
+                #{
+                #    "model_name": "claude", 
+                #    "litellm_params": {
+                #        "model": "anthropic/claude-3-haiku-20240307"}
+                #}, 
+                {
+                    "model_name": "gpt",
+                    "litellm_params": {
+                        "model": "openai/gpt-4o-mini", 
+                    }
+                },
+                {
+                    "model_name": "gemini",
+                    "litellm_params": {
+                        "model": "gemini/gemini-2.0-flash-001", 
+                    }
+                }
+            ],
+            fallbacks=[{"gpt": ["gemini"]}, {"gemini":["gpt"]}],
+            num_retries=1,
+            max_fallbacks=1, 
+        )
+    return _router
+
+async def call_llm_with_fallback(str1, 
+                                 model_name = "gemini", 
+                                 response_format=None
+                                 ):
+    router = get_litellm_fallback_router()
+    kwargs = {"temperature": 0.0}
+    result = await call_llm(
+        str1, 
+        router, 
+        model_name, 
+        response_format, 
+        kwargs
     )
-    parser.add_argument("--api_base", default="http://127.0.0.1:8080/v1")
-    parser.add_argument("--model", default="Qwen/Qwen3-4B-Instruct-2507")
-    parser.add_argument("--input", required=True, help="User input text.")
-    parser.add_argument("--max_tokens", type=int, default=256)
-    parser.add_argument("--temperature", type=float, default=0.0)
-    return parser.parse_args()
+    return result
 
-
-def main() -> None:
-    args = parse_args()
-
-    # LiteLLM requires an API key for OpenAI-compatible flows.
-    # Local server can ignore it, so use env var or a dummy fallback.
-    api_key = os.getenv("OPENAI_API_KEY", "dummy")
-
-    response = completion(
-        model=args.model,
-        api_base=args.api_base,
-        api_key=api_key,
-        custom_llm_provider="openai",
-        messages=[{"role": "user", "content": args.input}],
-        max_tokens=args.max_tokens,
-        temperature=args.temperature,
+async def call_llm(str1, 
+                   router=None, 
+                   model_name="openai/gpt-4o", 
+                   response_format=None, 
+                   kwargs={}):
+    acompletion1 = router.acompletion if router else acompletion
+    response = await acompletion1(
+        model=model_name,
+        messages=[{"role": "user", "content": str1}], 
+        response_format=response_format, 
+        **kwargs, 
     )
 
-    output = response["choices"][0]["message"]["content"]
-    print(output)
-    print("\n--- raw response ---")
-    print(json.dumps(response, ensure_ascii=False, indent=2, default=str))
+    x = response.choices[0].message.content
+    
+    # Parse JSON string when using structured output (response_format with json_schema)
+    # litellm returns JSON string when using structured output, need to parse it
+    if response_format and response_format.get("type") == "json_schema":
+        try:
+            return json.loads(x)
+        except (json.JSONDecodeError, TypeError) as e:
+            logging.warning(f"Failed to parse structured output as JSON: {e}. Returning raw string.")
+    
+    return x
 
+async def call_llm_stream(str1, 
+                         router=None, 
+                         model_name="openai/gpt-4o", 
+                         response_format=None, 
+                         kwargs={}):
+    """
+    Stream LLM response as async generator yielding chunks.
+    
+    Yields:
+        str: Content chunks from the LLM stream
+    """
+    acompletion1 = router.acompletion if router else acompletion
+    stream = await acompletion1(
+        model=model_name,
+        messages=[{"role": "user", "content": str1}], 
+        response_format=response_format,
+        stream=True,
+        **kwargs, 
+    )
+    
+    async for chunk in stream:
+        if chunk.choices and len(chunk.choices) > 0:
+            delta = chunk.choices[0].delta
+            if delta and delta.content:
+                yield delta.content
 
-if __name__ == "__main__":
-    main()
+async def call_llm_stream_with_fallback(str1, 
+                                        model_name="gpt", 
+                                        response_format=None):
+    """
+    Stream LLM response with fallback support.
+    
+    Yields:
+        str: Content chunks from the LLM stream
+    """
+    router = get_litellm_fallback_router()
+    kwargs = {"temperature": 0.0}
+
+    try:
+        async for chunk in call_llm_stream(
+            str1, 
+            router, 
+            model_name, 
+            response_format, 
+            kwargs
+        ):
+            yield chunk
+    except Exception as e:
+        # If primary model fails, try fallback
+        fallback_model = "gemini" if model_name == "gpt" else "gpt"
+        logging.warning(f"Primary model {model_name} failed, trying fallback {fallback_model}: {e}")
+
+        try:
+            async for chunk in call_llm_stream(
+                str1, 
+                router, 
+                fallback_model, 
+                response_format, 
+                kwargs
+            ):
+                yield chunk
+        except Exception as fallback_error:
+            logging.error(f"Both models failed: {fallback_error}")
+            raise
+
+async def call_llm_with_tools(
+    prompt: str,
+    tools: list[dict],
+    model_name: str = "gpt",
+    tool_choice: str = "auto"
+) -> dict:
+    """
+    Call LLM with function calling support via LiteLLM.
+    
+    Args:
+        prompt: User prompt
+        tools: List of tool definitions in OpenAI format
+        model_name: Model identifier for LiteLLM router
+        tool_choice: "auto", "required", or "none"
+    
+    Returns:
+        dict: Contains 'content' and 'tool_calls' (if any)
+    """
+    router = get_litellm_fallback_router()
+    
+    messages = [{"role": "user", "content": prompt}]
+    
+    # LiteLLM automatically handles tools parameter
+    response = await router.acompletion(
+        model=model_name,
+        messages=messages,
+        tools=tools,
+        tool_choice=tool_choice,
+        temperature=0.0
+    )
+    
+    latency = time.time() - start_time
+    
+    message = response.choices[0].message
+    
+    # Extract function calls if present
+    result = {
+        "content": message.content or "",
+        "tool_calls": []
+    }
+    
+    if hasattr(message, "tool_calls") and message.tool_calls:
+        for tool_call in message.tool_calls:
+            result["tool_calls"].append({
+                "id": tool_call.id,
+                "function": {
+                    "name": tool_call.function.name,
+                    "arguments": tool_call.function.arguments
+                }
+            })
+
+    return result

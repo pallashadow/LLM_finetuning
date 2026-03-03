@@ -101,6 +101,17 @@ def _normalize_invocation_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return normalized
 
 
+def _run_generation_or_503(
+    run_generation: Callable[[str, int], AnswerResponse], input_text: str, max_tokens: int
+) -> AnswerResponse:
+    try:
+        return run_generation(input_text=input_text, max_tokens=max_tokens)
+    except RuntimeError as exc:
+        # Surface backend initialization/runtime errors as service-unavailable
+        # instead of uncaught 500 responses.
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+
 def register_local_routes(
     app: FastAPI,
     run_generation: Callable[[str, int], AnswerResponse],
@@ -112,7 +123,7 @@ def register_local_routes(
 
     @app.post("/answer", response_model=AnswerResponse)
     def answer(req: AnswerRequest) -> AnswerResponse:
-        return run_generation(req.input, req.max_tokens)
+        return _run_generation_or_503(run_generation, req.input, req.max_tokens)
 
 
 def register_openai_routes(
@@ -145,7 +156,7 @@ def register_openai_routes(
         if not input_text:
             raise HTTPException(status_code=400, detail="No usable text found in `messages`.")
 
-        result = run_generation(input_text=input_text, max_tokens=req.max_tokens)
+        result = _run_generation_or_503(run_generation, input_text, req.max_tokens)
         completion_id = f"chatcmpl-{uuid.uuid4().hex}"
         created = int(time.time())
         prompt_tokens = max(1, len(input_text.split()))
@@ -183,7 +194,7 @@ def register_openai_routes(
         if not input_text:
             raise HTTPException(status_code=400, detail="`prompt` must contain text.")
 
-        result = run_generation(input_text=input_text, max_tokens=req.max_tokens)
+        result = _run_generation_or_503(run_generation, input_text, req.max_tokens)
         completion_id = f"cmpl-{uuid.uuid4().hex}"
         created = int(time.time())
         prompt_tokens = max(1, len(input_text.split()))
@@ -235,5 +246,5 @@ def register_sagemaker_routes(
         if max_tokens < 32 or max_tokens > 1024:
             raise HTTPException(status_code=400, detail="`max_tokens` must be between 32 and 1024.")
 
-        result = run_generation(input_text=input_text, max_tokens=max_tokens)
+        result = _run_generation_or_503(run_generation, input_text, max_tokens)
         return result.model_dump()

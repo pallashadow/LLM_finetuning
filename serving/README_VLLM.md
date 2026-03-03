@@ -20,17 +20,18 @@ The server now uses registry classes to compose backends and API protocols.
 Default startup:
 
 ```bash
-python serving/vllm_server.py
+python -m serving.vllm_server
 ```
 
 Explicit startup:
 
 ```bash
-python serving/vllm_server.py \
+python -m serving.vllm_server \
   --host 0.0.0.0 \
   --port 8000 \
   --backend auto \
   --model_name_or_path Qwen/Qwen3-4B-Instruct-2507 \
+  --max-model-len 4096 \
   --route_sets local,openai,sagemaker
 ```
 
@@ -38,11 +39,12 @@ Optional arguments:
 
 - `--backend`: `auto` / `vllm` / `transformers`
 - `--adapter_path`: optional LoRA/PEFT adapter path
+- `--max-model-len`: vLLM context length upper bound (default: `4096`)
 - `--route_sets`: comma-separated route sets (`local`, `openai`, `sagemaker`)
 
 Backend behavior:
 
-- `auto`: try `vllm` first, fallback to `transformers` if `vllm` init fails
+- `auto`: prefer `vllm` backend, then fallback to `transformers` if vLLM initialization fails
 - `vllm`: force vLLM backend (raise error if unavailable)
 - `transformers`: force Hugging Face Transformers backend
 
@@ -96,4 +98,12 @@ curl -s http://127.0.0.1:8000/invocations \
 - First request may be slower because model/backend initialization is lazy.
 - If you pass `--adapter_path`, ensure the adapter path is accessible at runtime.
 - For SageMaker deployment, use `--port 8080` and keep route set `sagemaker` enabled.
+- vLLM memory behavior:
+  - Default requested `gpu_memory_utilization` is `0.8`.
+  - Default `max_model_len` is `4096` (reduced for 8GB-class GPUs).
+  - Runtime auto-clamps to current free GPU memory to avoid startup failure.
+  - If KV cache is still insufficient, runtime auto-retries with smaller `max_model_len`.
+  - You can override utilization via env var: `VLLM_GPU_MEMORY_UTILIZATION` (for example `0.75`).
+  - You can override max length via env var: `VLLM_MAX_MODEL_LEN` (used when CLI value is not provided).
+  - To re-enable torch.compile path, set `VLLM_ENFORCE_EAGER=0`.
 

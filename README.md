@@ -32,36 +32,37 @@ report/
 
 ## Quick Start
 
-1. Create environment and install dependencies:
+1. Create environment and install dependencies (Windows / PowerShell, from project root):
 
-   ```bash
+   ```powershell
    python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
+   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
 
 2. Prepare dataset files (or configure a data source):
 
-   ```bash
-   python training/sft_pipeline.py --mode check_quality --config configs/train_config.yaml
+   ```powershell
+   .\.venv\Scripts\python.exe training\sft_pipeline.py --mode check_quality --config configs\train_config.yaml
    ```
 
 3. Run SFT pipeline:
 
-   ```bash
-   python training/sft_pipeline.py --mode train --config configs/train_config.yaml
+   ```powershell
+   .\.venv\Scripts\python.exe training\sft_pipeline.py --mode train --config configs\train_config.yaml
    ```
 
 4. Start local inference service (auto-select `vLLM`, fallback to `Transformers`):
 
-   ```bash
-   python serving/vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen3-4B-Instruct-2507
+   ```powershell
+   .\.venv\Scripts\python.exe serving\vllm_server.py --host 0.0.0.0 --port 8000 --backend auto --model_name_or_path Qwen/Qwen3-4B-Instruct-2507
    ```
+
+   For more serving options and OpenAI/SageMaker-compatible routes, see `serving/README_VLLM.md`.
 
 5. Run latency benchmark:
 
-   ```bash
-   python evaluation/latency_test.py --endpoint http://127.0.0.1:8000/answer --rounds 20 --warmup_rounds 3 --concurrency 1 --output_json report/generated/latest_latency.json --benchmark_csv report/generated/benchmark_results.csv --model local-open-model --cost_per_1k_queries_usd 0.02
+   ```powershell
+   .\.venv\Scripts\python.exe evaluation\latency_test.py --endpoint http://127.0.0.1:8000/answer --rounds 20 --warmup_rounds 3 --concurrency 1 --output_json report\generated\latest_latency.json --benchmark_csv report\generated\benchmark_results.csv --model local-open-model --cost_per_1k_queries_usd 0.02
    ```
 
 ## Current Status
@@ -123,14 +124,12 @@ dataset:
       path: data/synthetic_rag_eval.jsonl
 ```
 
-## Detailed TODO List
+## Detailed TODO / Roadmap
 
-- [ ] Keep training as a stable minimum executable baseline.
-- [ ] Add training resume support and explicit checkpoint selection.
-- [ ] Add training smoke test for one short end-to-end run.
-- [ ] Replace serving placeholder with real vLLM-backed RAG answer and adapter loading; build inference prompt from `prompt_template.yaml`.
-- [ ] Add SageMaker deployment assets (container, endpoint config, deployment script).
-- [ ] Expand latency benchmark (warmup, concurrency, reproducible metadata).
-- [ ] Add cost tracking and benchmark comparison across GPT-4 and open-model variants.
-- [ ] Build quality evaluation (faithfulness to refs, citation presence, entity matching, hallucination rate).
-- [ ] Add tests and CI for dataset building, benchmark utilities, and inference API smoke checks.
+High-level roadmap; see `AGENT.md` for the up-to-date, engineering-focused checklist.
+
+- [ ] Production-ready training pipeline (resume, richer eval, experiment tracking).
+- [ ] vLLM-backed serving, adapter loading, and SageMaker deployment assets.
+- [ ] Expanded latency and cost benchmarking across GPT-4 and open-model variants.
+- [ ] Quality evaluation suite (faithfulness, citations, entity matching, hallucination rate).
+- [ ] Tests and CI for dataset building, benchmark utilities, and inference API smoke checks.

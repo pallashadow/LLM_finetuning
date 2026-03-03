@@ -75,17 +75,17 @@ Optional: LLM-as-a-judge, GPT-4 evaluator.
 
 ### C. Serving and Deployment
 
-- [ ] Replace stub in `serving/vllm_server.py` with real model inference.
+- [x] Replace stub in `serving/vllm_server.py` with real model inference.
 - [ ] Build inference prompt from `prompt_template.yaml` (question, history, refs).
-- [ ] Request validation (max length, payload size).
+- [x] Request validation (max length, payload size).
 - [ ] SageMaker deployment artifacts.
 - [ ] Endpoint metrics (latency, error rate, throughput).
 
 ### D. Benchmarking
 
-- [ ] Expand `evaluation/latency_test.py` (warmup, concurrency).
+- [x] Expand `evaluation/latency_test.py` (warmup, concurrency).
 - [ ] Cost estimation for local and API models.
-- [ ] Connect to `report/generated/benchmark_results.csv`.
+- [x] Connect to `report/generated/benchmark_results.csv`.
 - [ ] Multi-model benchmark automation and markdown tables.
 
 ### E. Evaluation and Reporting
@@ -104,24 +104,26 @@ Optional: LLM-as-a-judge, GPT-4 evaluator.
 
 ## Project Status (Updated)
 
-Last updated: 2026-02-21
+Last updated: 2026-03-02
 
 Completed:
 
 - Repository skeleton (data, training, serving, evaluation, config, report).
-- `training/sft_pipeline.py`: synthetic dataset build and minimum executable SFT with LoRA/PEFT.
-- Adapter and run metadata output.
+- `training/sft_pipeline.py`: executable SFT with LoRA/QLoRA + PEFT, checkpoint resume support, eval metrics, and optional merged-model export.
+- Adapter and run metadata output (`run_metadata.json`) with train/eval metrics.
 - Generic RAG prompt in `training/prompt_template.yaml` (minimal tokens; question, history, refs).
-- `serving/vllm_server.py` and benchmark scripts runnable as dev baselines.
+- `serving/vllm_server.py`: unified FastAPI inference server with backend registry (`vllm`/`transformers`) and route sets (`local`, `openai`, `sagemaker`).
+- Request validation and payload normalization are in place for local/OpenAI/SageMaker-style endpoints.
+- `evaluation/latency_test.py`: warmup rounds, concurrency test mode, JSON output, and benchmark CSV appending.
 
 In progress:
 
-- Stabilizing training path and aligning data/code with RAG template (question, history, refs).
-- Wiring `prompt_templates.py` and dataset format to RAG template; inference prompt from YAML.
+- Wiring inference prompt construction from `prompt_template.yaml` in serving path (question, history, refs).
+- Cost estimation and multi-model benchmark automation/reporting.
 
 Not started / missing:
 
-- Full production training (resume, richer eval, experiment tracking).
+- Full production training hardening (larger-scale runs, richer eval, experiment tracking).
 - Production vLLM deployment and capacity tuning.
 - SageMaker deployment pipeline.
 - Full evaluation suite (quality, hallucination, citations, entity matching, retrieval metrics).
@@ -138,6 +140,10 @@ models/
    lora_checkpoint/
 serving/
    vllm_server.py
+   utils/
+      backends.py
+      registries.py
+      routes.py
 evaluation/
    benchmark.py
    latency_test.py
