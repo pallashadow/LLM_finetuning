@@ -42,7 +42,7 @@ training:
 
 export:
   adapter_dir: adapter
-  merge_adapter: false
+  merge_adapter: true
   merged_model_dir: merged_model
   safe_serialization: true
 

@@ -73,12 +73,18 @@ Optional: LLM-as-a-judge, GPT-4 evaluator.
 - [x] Validation loop and metric logging.
 - [x] Export adapter weights and merged model option.
 
+### C. Quantization
+
+- [x] autoawq int4 Quantization Pipeline implementation: build `training/quantize_pipeline.py` with calibration sampling, model input handling (merged/base+adapter), and config-driven CLI.
+- [ ] Validation and benchmarking: run post-quant load/smoke checks, evaluate quality regression vs FP16/BF16, and measure latency/throughput/VRAM gains.
+- [ ] Packaging and rollout: export standardized artifacts, set fallback-to-higher-precision policy, and document serving/deployment runbook updates.
+
 ### C. Serving and Deployment
 
 - [x] Replace stub in `serving/vllm_server.py` with real model inference.
 - [x] Build inference prompt from `prompts/prompt_rag.yaml` (question, query_context_txt, search_results_txt).
 - [x] Request validation (max length, payload size).
-- [ ] SageMaker deployment artifacts.
+- [x] SageMaker deployment artifacts.
 - [ ] Endpoint metrics (latency, error rate, throughput).
 
 ### D. Benchmarking
